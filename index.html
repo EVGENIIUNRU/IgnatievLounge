@@ -22,6 +22,7 @@
           <button class="tab" data-view="order">Заявка</button>
           <button class="tab" data-view="prices">Прайсы</button>
           <button class="tab" data-view="import">Импорт</button>
+          <button class="tab" data-view="sync">Sheets</button>
         </nav>
 
         <div class="side-note">
@@ -186,6 +187,29 @@
             </label>
             <button id="import-button" class="command primary">Импортировать</button>
             <p id="import-message" class="import-message"></p>
+          </div>
+        </section>
+
+        <section id="view-sync" class="view">
+          <div class="import-panel">
+            <div>
+              <h3>Синхронизация Google Sheets</h3>
+              <p>Вставьте URL опубликованного Google Apps Script Web App и токен. После этого сайт сможет читать и сохранять общую базу в Google Таблице.</p>
+            </div>
+            <label>
+              Apps Script Web App URL
+              <input id="sync-url" type="url" placeholder="https://script.google.com/macros/s/.../exec" />
+            </label>
+            <label>
+              Токен
+              <input id="sync-token" type="password" placeholder="ACCESS_TOKEN из Code.gs" />
+            </label>
+            <div class="inline-actions">
+              <button id="sync-save-settings" class="command">Сохранить настройки</button>
+              <button id="sync-load-button" class="command">Загрузить из Sheets</button>
+              <button id="sync-push-button" class="command primary">Отправить в Sheets</button>
+            </div>
+            <p id="sync-message" class="import-message"></p>
           </div>
         </section>
       </main>

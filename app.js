@@ -1,4 +1,5 @@
 const STORAGE_KEY = "ignatiev-lounge-orders-v1";
+const SYNC_SETTINGS_KEY = "ignatiev-lounge-sync-settings-v1";
 
 const state = loadState();
 const filters = {
@@ -33,11 +34,18 @@ const els = {
   importButton: document.querySelector("#import-button"),
   priceFile: document.querySelector("#price-file"),
   importMessage: document.querySelector("#import-message"),
+  syncUrl: document.querySelector("#sync-url"),
+  syncToken: document.querySelector("#sync-token"),
+  syncSaveSettings: document.querySelector("#sync-save-settings"),
+  syncLoadButton: document.querySelector("#sync-load-button"),
+  syncPushButton: document.querySelector("#sync-push-button"),
+  syncMessage: document.querySelector("#sync-message"),
 };
 
 init();
 
 function init() {
+  loadSyncSettings();
   populateSelects();
   bindEvents();
   render();
@@ -113,6 +121,9 @@ function bindEvents() {
   els.exportStateButton.addEventListener("click", exportState);
   els.exportOrderButton.addEventListener("click", () => exportOrder(els.exportSupplier.value));
   els.importButton.addEventListener("click", importPriceFile);
+  els.syncSaveSettings.addEventListener("click", saveSyncSettings);
+  els.syncLoadButton.addEventListener("click", loadFromSheets);
+  els.syncPushButton.addEventListener("click", pushToSheets);
 
   els.shelfBody.addEventListener("input", handleShelfInput);
   els.shelfBody.addEventListener("change", handleShelfInput);
@@ -127,6 +138,7 @@ function switchView(view) {
     order: "Заявка",
     prices: "Прайсы",
     import: "Импорт",
+    sync: "Google Sheets",
   }[view];
   render();
 }
@@ -385,6 +397,144 @@ function exportOrder(supplier) {
 function exportState() {
   const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json;charset=utf-8" });
   downloadBlob(blob, `ignatiev-lounge-base-${dateStamp()}.json`);
+}
+
+function loadSyncSettings() {
+  const settings = JSON.parse(localStorage.getItem(SYNC_SETTINGS_KEY) || "{}");
+  els.syncUrl.value = settings.url || "";
+  els.syncToken.value = settings.token || "";
+}
+
+function saveSyncSettings() {
+  localStorage.setItem(SYNC_SETTINGS_KEY, JSON.stringify({
+    url: els.syncUrl.value.trim(),
+    token: els.syncToken.value.trim(),
+  }));
+  els.syncMessage.textContent = "Настройки синхронизации сохранены.";
+}
+
+function syncSettings() {
+  return {
+    url: els.syncUrl.value.trim(),
+    token: els.syncToken.value.trim(),
+  };
+}
+
+async function loadFromSheets() {
+  const settings = syncSettings();
+  if (!settings.url || !settings.token) {
+    els.syncMessage.textContent = "Укажите URL Apps Script и токен.";
+    return;
+  }
+
+  els.syncMessage.textContent = "Загружаю данные из Google Sheets...";
+  try {
+    const data = await jsonpRequest(settings.url, {
+      action: "load",
+      token: settings.token,
+    });
+    if (!data.ok) throw new Error(data.error || "Google Sheets returned an error");
+    state.generatedAt = data.generatedAt;
+    state.suppliers = data.suppliers || [];
+    state.items = data.items || [];
+    state.prices = data.prices || [];
+    saveState();
+    populateSelects();
+    render();
+    els.syncMessage.textContent = `Загружено: ${state.items.length} позиций, ${state.prices.length} строк прайса.`;
+  } catch (error) {
+    els.syncMessage.textContent = `Ошибка загрузки: ${error.message}`;
+  }
+}
+
+async function pushToSheets() {
+  const settings = syncSettings();
+  if (!settings.url || !settings.token) {
+    els.syncMessage.textContent = "Укажите URL Apps Script и токен.";
+    return;
+  }
+
+  els.syncMessage.textContent = "Отправляю данные в Google Sheets...";
+  try {
+    await formPost(settings.url, {
+      token: settings.token,
+      payload: JSON.stringify({
+        action: "saveAll",
+        suppliers: state.suppliers,
+        items: state.items,
+        prices: state.prices,
+      }),
+    });
+    els.syncMessage.textContent = "Данные отправлены. Для проверки нажмите «Загрузить из Sheets».";
+  } catch (error) {
+    els.syncMessage.textContent = `Ошибка отправки: ${error.message}`;
+  }
+}
+
+function jsonpRequest(url, params) {
+  return new Promise((resolve, reject) => {
+    const callbackName = `ignatievCallback${Date.now()}${Math.floor(Math.random() * 1000)}`;
+    const script = document.createElement("script");
+    const requestUrl = new URL(url);
+    Object.entries(params).forEach(([key, value]) => requestUrl.searchParams.set(key, value));
+    requestUrl.searchParams.set("callback", callbackName);
+
+    const timeout = setTimeout(() => {
+      cleanup();
+      reject(new Error("Таймаут ответа Google Sheets"));
+    }, 20000);
+
+    window[callbackName] = (payload) => {
+      cleanup();
+      resolve(payload);
+    };
+
+    script.onerror = () => {
+      cleanup();
+      reject(new Error("Не удалось загрузить Apps Script"));
+    };
+
+    function cleanup() {
+      clearTimeout(timeout);
+      delete window[callbackName];
+      script.remove();
+    }
+
+    script.src = requestUrl.toString();
+    document.body.append(script);
+  });
+}
+
+function formPost(url, fields) {
+  return new Promise((resolve) => {
+    const iframe = document.createElement("iframe");
+    iframe.name = `sync-frame-${Date.now()}`;
+    iframe.hidden = true;
+
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = url;
+    form.target = iframe.name;
+    form.hidden = true;
+
+    Object.entries(fields).forEach(([name, value]) => {
+      const input = document.createElement("textarea");
+      input.name = name;
+      input.value = value;
+      form.append(input);
+    });
+
+    iframe.addEventListener("load", () => {
+      setTimeout(() => {
+        form.remove();
+        iframe.remove();
+        resolve();
+      }, 300);
+    });
+
+    document.body.append(iframe, form);
+    form.submit();
+  });
 }
 
 function parseCSV(text) {

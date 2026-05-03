@@ -22,6 +22,17 @@ For team access, enable GitHub Pages for this repository:
 4. Branch: `main`, folder `/root`.
 5. Save.
 
+## Google Sheets Sync
+
+1. Upload `google-sheets/Ignatiev Lounge Online Base.xlsx` to Google Drive and open it as Google Sheets.
+2. In the Google Sheet: Extensions -> Apps Script.
+3. Paste `google-sheets/Code.gs`.
+4. Change `ACCESS_TOKEN` to a private token.
+5. Deploy -> New deployment -> Web app.
+6. Execute as: Me. Who has access: Anyone with the link.
+7. Copy the Web App URL.
+8. Open the site -> `Sheets` tab -> paste URL and token.
+
 ## CSV Price Format
 
 Supported headers:
