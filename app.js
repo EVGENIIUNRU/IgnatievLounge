@@ -24,6 +24,8 @@ const els = {
   orderBody: document.querySelector("#order-body"),
   pricesBody: document.querySelector("#prices-body"),
   metricItems: document.querySelector("#metric-items"),
+  metricStock: document.querySelector("#metric-stock"),
+  metricWeight: document.querySelector("#metric-weight"),
   metricLow: document.querySelector("#metric-low"),
   metricOrder: document.querySelector("#metric-order"),
   metricAmount: document.querySelector("#metric-amount"),
@@ -33,6 +35,7 @@ const els = {
   exportOrderButton: document.querySelector("#export-order-button"),
   importButton: document.querySelector("#import-button"),
   addItemButton: document.querySelector("#add-item-button"),
+  addPriceItemButton: document.querySelector("#add-price-item-button"),
   priceFile: document.querySelector("#price-file"),
   importMessage: document.querySelector("#import-message"),
   itemDialog: document.querySelector("#item-dialog"),
@@ -138,6 +141,7 @@ function bindEvents() {
   els.exportOrderButton.addEventListener("click", () => exportOrder(els.exportSupplier.value));
   els.importButton.addEventListener("click", importPriceFile);
   els.addItemButton.addEventListener("click", () => openItemDialog());
+  els.addPriceItemButton.addEventListener("click", () => openItemDialog());
   els.modalSupplier.addEventListener("change", refreshModalPrices);
   els.modalPriceSearch.addEventListener("input", refreshModalPrices);
   els.modalPriceSelect.addEventListener("change", applySelectedPriceToModal);
@@ -149,6 +153,8 @@ function bindEvents() {
   els.shelfBody.addEventListener("input", handleShelfInput);
   els.shelfBody.addEventListener("change", handleShelfInput);
   els.shelfBody.addEventListener("click", handleShelfClick);
+  els.pricesBody.addEventListener("change", handlePriceInput);
+  els.pricesBody.addEventListener("click", handlePriceClick);
 }
 
 function switchView(view) {
@@ -177,8 +183,16 @@ function renderMetrics() {
   const lowItems = activeItems.filter((item) => getStatus(item).key === "low");
   const lines = getOrderLines();
   const amount = lines.reduce((sum, line) => sum + line.amount, 0);
+  const stockTotal = activeItems.reduce((sum, item) => sum + Number(item.currentStock || 0), 0);
+  const gramTotal = activeItems.reduce((sum, item) => {
+    const grams = Number(item.weightGrams || 0);
+    const stock = Number(item.currentStock || 0);
+    return sum + grams * stock;
+  }, 0);
 
   els.metricItems.textContent = activeItems.length;
+  els.metricStock.textContent = `${stockTotal} шт`;
+  els.metricWeight.textContent = formatWeight(gramTotal);
   els.metricLow.textContent = lowItems.length;
   els.metricOrder.textContent = lines.length;
   els.metricAmount.textContent = money(amount);
@@ -245,19 +259,36 @@ function renderPrices() {
     .filter((line) => supplier === "all" || line.supplier === supplier)
     .filter((line) => !search || `${line.name} ${line.brand} ${line.article}`.toLowerCase().includes(search))
     .slice(0, 500)
-    .map((line) => `
-      <tr>
-        <td>${escapeHtml(line.supplier)}</td>
-        <td>${escapeHtml(line.article)}</td>
-        <td class="name-cell">${escapeHtml(line.name)}</td>
-        <td>${escapeHtml(line.brand)}</td>
-        <td class="number">${money(line.priceLarge || 0)}</td>
-        <td class="number">${money(line.priceSmall || 0)}</td>
-        <td>${escapeHtml(line.sourceFile || "")}</td>
-      </tr>
-    `);
+    .map((line) => {
+      const item = findItemForPrice(line);
+      const orderQty = Number(item?.orderQty || 0);
+      const stockQty = Number(item?.currentStock || 0);
+      return `
+        <tr>
+          <td>${escapeHtml(line.supplier)}</td>
+          <td>${escapeHtml(line.article)}</td>
+          <td class="name-cell">${escapeHtml(line.name)}</td>
+          <td>${escapeHtml(line.brand)}</td>
+          <td class="number">${money(line.priceLarge || 0)}</td>
+          <td class="number">${money(line.priceSmall || 0)}</td>
+          <td>
+            <div class="row-actions">
+              <input class="qty-input" type="number" min="0" data-price-id="${escapeHtml(line.id)}" data-field="priceOrderQty" value="${orderQty}" />
+              <button class="mini-button" data-action="price-plus" data-price-id="${escapeHtml(line.id)}" type="button">+1</button>
+            </div>
+          </td>
+          <td>
+            <div class="row-actions">
+              <button class="mini-button" data-action="price-shelf" data-price-id="${escapeHtml(line.id)}" type="button">+ остаток</button>
+              ${item ? `<span class="shelf-pill">${stockQty} шт</span>` : ""}
+            </div>
+          </td>
+          <td>${escapeHtml(line.sourceFile || "")}</td>
+        </tr>
+      `;
+    });
 
-  els.pricesBody.innerHTML = rows.join("") || emptyRow(7, "Прайс не найден");
+  els.pricesBody.innerHTML = rows.join("") || emptyRow(9, "Прайс не найден");
 }
 
 function filteredItems() {
@@ -307,6 +338,43 @@ function handleShelfClick(event) {
   if (button.dataset.action === "variants") {
     openItemDialog(item);
   }
+}
+
+function handlePriceInput(event) {
+  const target = event.target;
+  if (target.dataset.field !== "priceOrderQty") return;
+
+  const line = state.prices.find((price) => price.id === target.dataset.priceId);
+  if (!line) return;
+
+  const item = ensureItemFromPrice(line, { required: Number(target.value || 0) > 0 });
+  item.orderQty = Math.max(0, Number(target.value || 0));
+  item.manualOrder = item.orderQty > 0;
+  saveState();
+  populateSelects();
+  render();
+}
+
+function handlePriceClick(event) {
+  const button = event.target.closest("button[data-action]");
+  if (!button) return;
+
+  const line = state.prices.find((price) => price.id === button.dataset.priceId);
+  if (!line) return;
+
+  const item = ensureItemFromPrice(line, { required: true });
+  if (button.dataset.action === "price-plus") {
+    item.orderQty = Number(item.orderQty || 0) + 1;
+    item.manualOrder = true;
+  }
+  if (button.dataset.action === "price-shelf") {
+    item.currentStock = Number(item.currentStock || 0) + 1;
+    item.targetStock = Math.max(Number(item.targetStock || 1), Number(item.currentStock || 0));
+  }
+
+  saveState();
+  populateSelects();
+  render();
 }
 
 function openItemDialog(item = null) {
@@ -474,7 +542,6 @@ async function importPriceFile() {
       importedAt: new Date().toISOString().slice(0, 10),
     };
     upsertPrice(line);
-    upsertItemFromPrice(line);
     imported += 1;
   });
 
@@ -495,34 +562,55 @@ function upsertPrice(line) {
 }
 
 function upsertItemFromPrice(line) {
-  const exists = state.items.some((item) =>
+  ensureItemFromPrice(line);
+}
+
+function findItemForPrice(line) {
+  return state.items.find((item) =>
     item.supplier === line.supplier &&
     ((line.article && item.article === line.article) || normalize(item.name) === normalize(line.name))
   );
-  if (exists) return;
+}
 
-  state.items.push({
-    id: `item-import-${Date.now()}-${state.items.length}`,
-    supplier: line.supplier,
-    article: line.article,
-    name: line.name,
-    brand: line.brand,
-    strength: inferStrength(line.name),
-    weightGrams: inferWeight(line.name),
-    currentStock: 0,
-    minStock: 0,
-    targetStock: 1,
-    required: false,
-    archived: false,
-    manualOrder: false,
-    orderQty: 0,
-    price: line.priceLarge || line.priceSmall || 0,
-    lastPrice: line.priceLarge || line.priceSmall || 0,
-    lastDate: "",
-    orders: 0,
-    totalQty: 0,
-    priceSource: line.sourceFile,
-  });
+function ensureItemFromPrice(line, options = {}) {
+  let item = findItemForPrice(line);
+  const price = line.priceLarge || line.priceSmall || 0;
+
+  if (!item) {
+    item = {
+      id: `item-import-${Date.now()}-${state.items.length}`,
+      supplier: line.supplier,
+      article: line.article,
+      name: line.name,
+      brand: line.brand,
+      strength: inferStrength(line.name),
+      weightGrams: inferWeight(line.name),
+      currentStock: 0,
+      minStock: 0,
+      targetStock: 1,
+      required: false,
+      archived: false,
+      manualOrder: false,
+      orderQty: 0,
+      price,
+      lastPrice: price,
+      lastDate: "",
+      orders: 0,
+      totalQty: 0,
+      priceSource: line.sourceFile,
+    };
+    state.items.push(item);
+  } else {
+    item.article = item.article || line.article;
+    item.brand = item.brand || line.brand || inferBrand(line.name);
+    item.weightGrams = item.weightGrams || inferWeight(line.name);
+    item.price = price || item.price || 0;
+    item.lastPrice = price || item.lastPrice || 0;
+    item.priceSource = line.sourceFile || item.priceSource || "";
+  }
+
+  if (options.required) item.required = true;
+  return item;
 }
 
 function exportOrder(supplier) {
@@ -773,6 +861,12 @@ function numberValue(value) {
 
 function money(value) {
   return Number(value || 0).toLocaleString("ru-RU", { style: "currency", currency: "RUB", maximumFractionDigits: 0 });
+}
+
+function formatWeight(value) {
+  const grams = Number(value || 0);
+  if (grams >= 1000) return `${(grams / 1000).toLocaleString("ru-RU", { maximumFractionDigits: 1 })} кг`;
+  return `${grams} г`;
 }
 
 function option(value, label) {

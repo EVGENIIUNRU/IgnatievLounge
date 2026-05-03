@@ -48,6 +48,14 @@
             <span>Позиций</span>
             <strong id="metric-items">0</strong>
           </div>
+          <div class="metric">
+            <span>На полке</span>
+            <strong id="metric-stock">0</strong>
+          </div>
+          <div class="metric">
+            <span>Вес</span>
+            <strong id="metric-weight">0 г</strong>
+          </div>
           <div class="metric alert">
             <span>Мало</span>
             <strong id="metric-low">0</strong>
@@ -154,7 +162,10 @@
           <div class="section-head">
             <div>
               <h3>Прайсы</h3>
-              <p>Справочник актуальных строк поставщиков. Новые CSV-импорты обновляют эту таблицу.</p>
+              <p>Проставьте количество в заказ или добавьте позицию на полку прямо из актуального прайса.</p>
+            </div>
+            <div class="inline-actions">
+              <button id="add-price-item-button" class="command primary">Новая позиция</button>
             </div>
           </div>
           <div class="table-wrap">
@@ -167,6 +178,8 @@
                   <th>Бренд</th>
                   <th>Крупный опт</th>
                   <th>Мелкий опт</th>
+                  <th>Заказ</th>
+                  <th>Полка</th>
                   <th>Источник</th>
                 </tr>
               </thead>

@@ -172,7 +172,7 @@ h3 {
 
 .metrics {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 16px;
 }
@@ -330,6 +330,19 @@ tbody tr:hover {
   color: var(--accent);
   padding: 0 9px;
   cursor: pointer;
+  white-space: nowrap;
+}
+
+.shelf-pill {
+  display: inline-flex;
+  min-height: 26px;
+  align-items: center;
+  border-radius: 999px;
+  background: var(--soft);
+  color: var(--accent);
+  padding: 0 8px;
+  font-size: 12px;
+  font-weight: 800;
   white-space: nowrap;
 }
 
