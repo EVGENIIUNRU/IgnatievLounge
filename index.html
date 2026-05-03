@@ -92,9 +92,12 @@
           <div class="section-head">
             <div>
               <h3>Остатки и матрица</h3>
-              <p>Поля редактируются прямо в таблице. Данные сохраняются в браузере.</p>
+              <p>Поля редактируются прямо в таблице. Новые ароматы и граммовку можно выбрать из прайса.</p>
             </div>
-            <button id="export-state-button" class="command">Выгрузить базу</button>
+            <div class="inline-actions">
+              <button id="add-item-button" class="command primary">Новая позиция</button>
+              <button id="export-state-button" class="command">Выгрузить базу</button>
+            </div>
           </div>
           <div class="table-wrap">
             <table>
@@ -109,6 +112,7 @@
                   <th>Цель</th>
                   <th>Заказать</th>
                   <th>Цена</th>
+                  <th>Прайс</th>
                   <th>Матрица</th>
                   <th>Вывести</th>
                 </tr>
@@ -217,5 +221,88 @@
 
     <script src="data/seed-data.js"></script>
     <script src="app.js"></script>
+
+    <dialog id="item-dialog" class="modal">
+      <form method="dialog" class="modal-card">
+        <div class="modal-head">
+          <div>
+            <h3 id="item-dialog-title">Новая позиция</h3>
+            <p>Выберите аромат из прайса или заполните название вручную.</p>
+          </div>
+          <button class="icon-button" value="cancel" aria-label="Закрыть">×</button>
+        </div>
+
+        <div class="modal-grid">
+          <label>
+            Поставщик
+            <select id="modal-supplier"></select>
+          </label>
+          <label>
+            Поиск в прайсе
+            <input id="modal-price-search" type="search" placeholder="Бренд или вкус" />
+          </label>
+        </div>
+
+        <label>
+          Вариант из прайса
+          <select id="modal-price-select"></select>
+        </label>
+
+        <div class="modal-grid">
+          <label>
+            Бренд
+            <input id="modal-brand" type="text" />
+          </label>
+          <label>
+            Крепость
+            <select id="modal-strength">
+              <option>Не указана</option>
+              <option>Легкая</option>
+              <option>Средняя</option>
+              <option>Крепкая</option>
+              <option>Cigar</option>
+              <option>No Aroma</option>
+            </select>
+          </label>
+          <label>
+            Граммовка
+            <select id="modal-weight"></select>
+          </label>
+          <label>
+            Цена
+            <input id="modal-price" type="number" min="0" />
+          </label>
+        </div>
+
+        <label>
+          Название
+          <input id="modal-name" type="text" />
+        </label>
+
+        <div class="modal-grid">
+          <label>
+            Остаток
+            <input id="modal-stock" type="number" min="0" value="0" />
+          </label>
+          <label>
+            Минимум
+            <input id="modal-min" type="number" min="0" value="0" />
+          </label>
+          <label>
+            Цель
+            <input id="modal-target" type="number" min="0" value="1" />
+          </label>
+          <label>
+            В заявку
+            <input id="modal-order" type="number" min="0" value="0" />
+          </label>
+        </div>
+
+        <div class="modal-actions">
+          <button value="cancel" class="command">Отмена</button>
+          <button id="modal-save" type="button" class="command primary">Добавить</button>
+        </div>
+      </form>
+    </dialog>
   </body>
 </html>

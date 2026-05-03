@@ -316,6 +316,23 @@ tbody tr:hover {
   text-align: right;
 }
 
+.row-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.mini-button {
+  min-height: 30px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--accent);
+  padding: 0 9px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
 .check-cell {
   text-align: center;
 }
@@ -397,6 +414,58 @@ tbody tr:hover {
   min-height: 20px;
 }
 
+.modal {
+  width: min(760px, calc(100vw - 28px));
+  border: 0;
+  border-radius: 8px;
+  padding: 0;
+  box-shadow: 0 28px 70px rgba(15, 23, 42, 0.28);
+}
+
+.modal::backdrop {
+  background: rgba(15, 23, 42, 0.48);
+}
+
+.modal-card {
+  display: grid;
+  gap: 16px;
+  padding: 22px;
+  background: #fff;
+}
+
+.modal-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.modal-head p {
+  margin: 5px 0 0;
+  color: var(--muted);
+}
+
+.icon-button {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.modal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
 @media (max-width: 920px) {
   .app-shell {
     grid-template-columns: 1fr;
@@ -452,5 +521,9 @@ tbody tr:hover {
 
   .command {
     width: 100%;
+  }
+
+  .modal-grid {
+    grid-template-columns: 1fr;
   }
 }

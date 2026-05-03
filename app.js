@@ -32,8 +32,24 @@ const els = {
   exportStateButton: document.querySelector("#export-state-button"),
   exportOrderButton: document.querySelector("#export-order-button"),
   importButton: document.querySelector("#import-button"),
+  addItemButton: document.querySelector("#add-item-button"),
   priceFile: document.querySelector("#price-file"),
   importMessage: document.querySelector("#import-message"),
+  itemDialog: document.querySelector("#item-dialog"),
+  itemDialogTitle: document.querySelector("#item-dialog-title"),
+  modalSupplier: document.querySelector("#modal-supplier"),
+  modalPriceSearch: document.querySelector("#modal-price-search"),
+  modalPriceSelect: document.querySelector("#modal-price-select"),
+  modalBrand: document.querySelector("#modal-brand"),
+  modalStrength: document.querySelector("#modal-strength"),
+  modalWeight: document.querySelector("#modal-weight"),
+  modalPrice: document.querySelector("#modal-price"),
+  modalName: document.querySelector("#modal-name"),
+  modalStock: document.querySelector("#modal-stock"),
+  modalMin: document.querySelector("#modal-min"),
+  modalTarget: document.querySelector("#modal-target"),
+  modalOrder: document.querySelector("#modal-order"),
+  modalSave: document.querySelector("#modal-save"),
   syncUrl: document.querySelector("#sync-url"),
   syncToken: document.querySelector("#sync-token"),
   syncSaveSettings: document.querySelector("#sync-save-settings"),
@@ -121,12 +137,18 @@ function bindEvents() {
   els.exportStateButton.addEventListener("click", exportState);
   els.exportOrderButton.addEventListener("click", () => exportOrder(els.exportSupplier.value));
   els.importButton.addEventListener("click", importPriceFile);
+  els.addItemButton.addEventListener("click", () => openItemDialog());
+  els.modalSupplier.addEventListener("change", refreshModalPrices);
+  els.modalPriceSearch.addEventListener("input", refreshModalPrices);
+  els.modalPriceSelect.addEventListener("change", applySelectedPriceToModal);
+  els.modalSave.addEventListener("click", saveModalItem);
   els.syncSaveSettings.addEventListener("click", saveSyncSettings);
   els.syncLoadButton.addEventListener("click", loadFromSheets);
   els.syncPushButton.addEventListener("click", pushToSheets);
 
   els.shelfBody.addEventListener("input", handleShelfInput);
   els.shelfBody.addEventListener("change", handleShelfInput);
+  els.shelfBody.addEventListener("click", handleShelfClick);
 }
 
 function switchView(view) {
@@ -178,15 +200,21 @@ function renderShelf() {
         <td><input class="qty-input" type="number" min="0" data-id="${item.id}" data-field="currentStock" value="${numberValue(item.currentStock)}" /></td>
         <td><input class="qty-input" type="number" min="0" data-id="${item.id}" data-field="minStock" value="${numberValue(item.minStock)}" /></td>
         <td><input class="qty-input" type="number" min="0" data-id="${item.id}" data-field="targetStock" value="${numberValue(item.targetStock)}" /></td>
-        <td><input class="qty-input" type="number" min="0" data-id="${item.id}" data-field="orderQty" placeholder="${suggested}" value="${numberValue(item.orderQty)}" /></td>
+        <td>
+          <div class="row-actions">
+            <input class="qty-input" type="number" min="0" data-id="${item.id}" data-field="orderQty" placeholder="${suggested}" value="${numberValue(item.orderQty)}" />
+            <button class="mini-button" data-action="plus-order" data-id="${item.id}" type="button">+1</button>
+          </div>
+        </td>
         <td class="number">${money(item.price || item.lastPrice || 0)}</td>
+        <td><button class="mini-button" data-action="variants" data-id="${item.id}" type="button">Варианты</button></td>
         <td class="check-cell"><input type="checkbox" data-id="${item.id}" data-field="required" ${item.required ? "checked" : ""} /></td>
         <td class="check-cell"><input type="checkbox" data-id="${item.id}" data-field="archived" ${item.archived ? "checked" : ""} /></td>
       </tr>
     `;
   });
 
-  els.shelfBody.innerHTML = rows.join("") || emptyRow(11, "Нет позиций по выбранным фильтрам");
+  els.shelfBody.innerHTML = rows.join("") || emptyRow(12, "Нет позиций по выбранным фильтрам");
 }
 
 function renderOrder() {
@@ -261,6 +289,117 @@ function handleShelfInput(event) {
   saveState();
   renderMetrics();
   if (field !== "orderQty") renderShelf();
+}
+
+function handleShelfClick(event) {
+  const button = event.target.closest("button[data-action]");
+  if (!button) return;
+
+  const item = state.items.find((row) => row.id === button.dataset.id);
+  if (!item) return;
+
+  if (button.dataset.action === "plus-order") {
+    item.orderQty = Number(item.orderQty || 0) + 1;
+    saveState();
+    render();
+  }
+
+  if (button.dataset.action === "variants") {
+    openItemDialog(item);
+  }
+}
+
+function openItemDialog(item = null) {
+  els.itemDialog.dataset.editId = item?.id || "";
+  els.itemDialogTitle.textContent = item ? "Варианты граммовки" : "Новая позиция";
+  els.modalSave.textContent = item ? "Сохранить" : "Добавить";
+  els.modalSupplier.innerHTML = state.suppliers.map((supplier) => option(supplier, supplier)).join("");
+  els.modalSupplier.value = item?.supplier || state.suppliers[0] || "";
+  els.modalPriceSearch.value = item ? [item.brand, item.name].filter(Boolean).join(" ") : "";
+  els.modalBrand.value = item?.brand || "";
+  els.modalStrength.value = item?.strength || "Не указана";
+  els.modalWeight.innerHTML = weightOptions(item?.weightGrams);
+  els.modalPrice.value = item?.price || item?.lastPrice || "";
+  els.modalName.value = item?.name || "";
+  els.modalStock.value = item?.currentStock || 0;
+  els.modalMin.value = item?.minStock || 0;
+  els.modalTarget.value = item?.targetStock || 1;
+  els.modalOrder.value = item?.orderQty || 0;
+  refreshModalPrices();
+  els.itemDialog.showModal();
+}
+
+function refreshModalPrices() {
+  const supplier = els.modalSupplier.value;
+  const query = normalize(els.modalPriceSearch.value);
+  const prices = state.prices
+    .filter((line) => !supplier || line.supplier === supplier)
+    .filter((line) => !query || normalize(`${line.name} ${line.brand} ${line.article}`).includes(query))
+    .slice(0, 80);
+
+  els.modalPriceSelect.innerHTML = [`<option value="">Не выбрано</option>`]
+    .concat(prices.map((line) => {
+      const price = line.priceLarge || line.priceSmall || "";
+      const weight = inferWeight(line.name);
+      const label = `${line.name}${weight ? ` · ${weight} г` : ""}${price ? ` · ${money(price)}` : ""}`;
+      return `<option value="${escapeHtml(line.id)}">${escapeHtml(label)}</option>`;
+    }))
+    .join("");
+}
+
+function applySelectedPriceToModal() {
+  const line = state.prices.find((price) => price.id === els.modalPriceSelect.value);
+  if (!line) return;
+  const weight = inferWeight(line.name);
+  els.modalBrand.value = line.brand || inferBrand(line.name);
+  els.modalStrength.value = inferStrength(line.name);
+  els.modalWeight.innerHTML = weightOptions(weight);
+  els.modalWeight.value = String(weight || "");
+  els.modalPrice.value = line.priceLarge || line.priceSmall || "";
+  els.modalName.value = line.name;
+}
+
+function saveModalItem(event) {
+  event.preventDefault();
+  const selectedPrice = state.prices.find((price) => price.id === els.modalPriceSelect.value);
+  const editId = els.itemDialog.dataset.editId;
+  const existing = state.items.find((item) => item.id === editId);
+  const item = existing || {};
+  item.id = existing?.id || `item-manual-${Date.now()}`;
+  item.supplier = els.modalSupplier.value;
+  item.article = selectedPrice?.article || existing?.article || "";
+  item.name = els.modalName.value.trim() || selectedPrice?.name || "";
+  item.brand = els.modalBrand.value.trim() || inferBrand(item.name);
+  item.strength = els.modalStrength.value;
+  item.weightGrams = numberOrNull(els.modalWeight.value);
+  item.currentStock = Number(els.modalStock.value || 0);
+  item.minStock = Number(els.modalMin.value || 0);
+  item.targetStock = Number(els.modalTarget.value || 1);
+  item.required = existing?.required || false;
+  item.archived = existing?.archived || false;
+  item.manualOrder = Number(els.modalOrder.value || 0) > 0;
+  item.orderQty = Number(els.modalOrder.value || 0);
+  item.price = Number(els.modalPrice.value || 0);
+  item.lastPrice = item.price || existing?.lastPrice || null;
+  item.lastDate = existing?.lastDate || "";
+  item.orders = existing?.orders || 0;
+  item.totalQty = existing?.totalQty || 0;
+  item.priceSource = selectedPrice?.sourceFile || existing?.priceSource || "";
+
+  if (!item.name) return;
+  if (!existing) state.items.push(item);
+  saveState();
+  populateSelects();
+  render();
+  els.itemDialog.close();
+}
+
+function weightOptions(selectedWeight) {
+  const weights = [...new Set(state.prices.map((line) => inferWeight(line.name)).filter(Boolean))].sort((a, b) => a - b);
+  if (selectedWeight && !weights.includes(Number(selectedWeight))) weights.push(Number(selectedWeight));
+  return [`<option value="">Не указана</option>`]
+    .concat(weights.sort((a, b) => a - b).map((weight) => `<option value="${weight}" ${Number(selectedWeight) === weight ? "selected" : ""}>${weight} г</option>`))
+    .join("");
 }
 
 function getStatus(item) {
@@ -621,6 +760,11 @@ function valueAt(row, index) {
 function numberFrom(value) {
   const number = Number(String(value || "").replace(/\s+/g, "").replace(",", "."));
   return Number.isFinite(number) ? number : null;
+}
+
+function numberOrNull(value) {
+  const number = Number(value);
+  return Number.isFinite(number) && value !== "" ? number : null;
 }
 
 function numberValue(value) {
