@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ignatiev Lounge · Заявки</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand-block">
+          <img src="assets/shelf.jpg" alt="Полка Ignatiev Lounge" />
+          <div>
+            <p class="eyebrow">Ignatiev Lounge</p>
+            <h1>Заявки</h1>
+          </div>
+        </div>
+
+        <nav class="tabs" aria-label="Разделы">
+          <button class="tab active" data-view="shelf">Полка</button>
+          <button class="tab" data-view="order">Заявка</button>
+          <button class="tab" data-view="prices">Прайсы</button>
+          <button class="tab" data-view="import">Импорт</button>
+        </nav>
+
+        <div class="side-note">
+          <strong>Как работать</strong>
+          <span>Проставьте остаток, проверьте минимум и целевой остаток. Заявка соберется автоматически.</span>
+        </div>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Матрица полки</p>
+            <h2 id="view-title">Полка</h2>
+          </div>
+          <div class="top-actions">
+            <button id="save-button" class="command">Сохранить</button>
+            <button id="reset-button" class="command danger">Сбросить</button>
+          </div>
+        </header>
+
+        <section class="metrics" aria-label="Сводка">
+          <div class="metric">
+            <span>Позиций</span>
+            <strong id="metric-items">0</strong>
+          </div>
+          <div class="metric alert">
+            <span>Мало</span>
+            <strong id="metric-low">0</strong>
+          </div>
+          <div class="metric">
+            <span>К заказу</span>
+            <strong id="metric-order">0</strong>
+          </div>
+          <div class="metric">
+            <span>Сумма</span>
+            <strong id="metric-amount">0 ₽</strong>
+          </div>
+        </section>
+
+        <section class="toolbar" aria-label="Фильтры">
+          <label>
+            Поиск
+            <input id="search-input" type="search" placeholder="Бренд, вкус, артикул" />
+          </label>
+          <label>
+            Поставщик
+            <select id="supplier-filter"></select>
+          </label>
+          <label>
+            Статус
+            <select id="status-filter">
+              <option value="all">Все</option>
+              <option value="low">Мало</option>
+              <option value="normal">Норма</option>
+              <option value="overstock">Избыток</option>
+              <option value="required">Матрица</option>
+              <option value="archived">Вывести</option>
+            </select>
+          </label>
+          <label>
+            Крепость
+            <select id="strength-filter"></select>
+          </label>
+        </section>
+
+        <section id="view-shelf" class="view active">
+          <div class="section-head">
+            <div>
+              <h3>Остатки и матрица</h3>
+              <p>Поля редактируются прямо в таблице. Данные сохраняются в браузере.</p>
+            </div>
+            <button id="export-state-button" class="command">Выгрузить базу</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Статус</th>
+                  <th>Поставщик</th>
+                  <th>Позиция</th>
+                  <th>Крепость</th>
+                  <th>Остаток</th>
+                  <th>Мин.</th>
+                  <th>Цель</th>
+                  <th>Заказать</th>
+                  <th>Цена</th>
+                  <th>Матрица</th>
+                  <th>Вывести</th>
+                </tr>
+              </thead>
+              <tbody id="shelf-body"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="view-order" class="view">
+          <div class="section-head">
+            <div>
+              <h3>Готовая заявка</h3>
+              <p>Экспорт формирует CSV для отправки поставщику или дальнейшей вставки в таблицу.</p>
+            </div>
+            <div class="inline-actions">
+              <select id="export-supplier"></select>
+              <button id="export-order-button" class="command primary">Экспорт CSV</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Поставщик</th>
+                  <th>Артикул</th>
+                  <th>Позиция</th>
+                  <th>Кол-во</th>
+                  <th>Цена</th>
+                  <th>Сумма</th>
+                </tr>
+              </thead>
+              <tbody id="order-body"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="view-prices" class="view">
+          <div class="section-head">
+            <div>
+              <h3>Прайсы</h3>
+              <p>Справочник актуальных строк поставщиков. Новые CSV-импорты обновляют эту таблицу.</p>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Поставщик</th>
+                  <th>Артикул</th>
+                  <th>Наименование</th>
+                  <th>Бренд</th>
+                  <th>Крупный опт</th>
+                  <th>Мелкий опт</th>
+                  <th>Источник</th>
+                </tr>
+              </thead>
+              <tbody id="prices-body"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="view-import" class="view">
+          <div class="import-panel">
+            <div>
+              <h3>Импорт прайса</h3>
+              <p>Загрузите CSV поставщика. Колонки определяются по заголовкам.</p>
+            </div>
+            <label>
+              Поставщик
+              <select id="import-supplier"></select>
+            </label>
+            <label class="file-drop">
+              <input id="price-file" type="file" accept=".csv,.txt" />
+              <span>Выберите CSV-файл</span>
+            </label>
+            <button id="import-button" class="command primary">Импортировать</button>
+            <p id="import-message" class="import-message"></p>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="data/seed-data.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
