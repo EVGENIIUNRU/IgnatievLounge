@@ -3,319 +3,210 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Ignatiev Lounge · Заявки</title>
-    <link rel="stylesheet" href="styles.css" />
+    <title>Ignatiev Lounge Matrix</title>
+    <link rel="stylesheet" href="./assets/styles.css" />
   </head>
   <body>
     <div class="app-shell">
       <aside class="sidebar">
-        <div class="brand-block">
-          <img src="assets/shelf.jpg" alt="Полка Ignatiev Lounge" />
+        <div class="brand-lockup">
+          <div class="brand-mark">IL</div>
           <div>
-            <p class="eyebrow">Ignatiev Lounge</p>
-            <h1>Заявки</h1>
+            <div class="brand-name">Ignatiev Lounge</div>
+            <div class="brand-subtitle">Матрица табака</div>
           </div>
         </div>
 
-        <nav class="tabs" aria-label="Разделы">
-          <button class="tab active" data-view="shelf">Полка</button>
-          <button class="tab" data-view="order">Заявка</button>
-          <button class="tab" data-view="prices">Прайсы</button>
-          <button class="tab" data-view="import">Импорт</button>
-          <button class="tab" data-view="sync">Sheets</button>
+        <nav class="nav-tabs" aria-label="Разделы">
+          <button class="nav-tab active" data-tab="dashboard" type="button">Обзор</button>
+          <button class="nav-tab" data-tab="shelf" type="button">Полка</button>
+          <button class="nav-tab" data-tab="catalog" type="button">Каталог</button>
+          <button class="nav-tab" data-tab="order" type="button">Заявка</button>
+          <button class="nav-tab" data-tab="settings" type="button">Настройки</button>
         </nav>
 
-        <div class="side-note">
-          <strong>Как работать</strong>
-          <span>Проставьте остаток, проверьте минимум и целевой остаток. Заявка соберется автоматически.</span>
+        <div class="sidebar-footer">
+          <div class="muted-label">Поставщики</div>
+          <div class="supplier-row"><span>DOKA</span><strong id="dokaCount">0</strong></div>
+          <div class="supplier-row"><span>НУА</span><strong id="nuaCount">0</strong></div>
         </div>
       </aside>
 
-      <main class="main">
+      <main class="workspace">
         <header class="topbar">
           <div>
-            <p class="eyebrow">Матрица полки</p>
-            <h2 id="view-title">Полка</h2>
+            <p class="eyebrow">Внутренний инструмент</p>
+            <h1 id="viewTitle">Контроль полки</h1>
           </div>
-          <div class="top-actions">
-            <button id="save-button" class="command">Сохранить</button>
-            <button id="reset-button" class="command danger">Сбросить</button>
+          <div class="topbar-actions">
+            <label class="search-box">
+              <span>Поиск</span>
+              <input id="globalSearch" type="search" placeholder="Бренд, аромат, артикул" />
+            </label>
+            <button id="exportState" class="ghost-button" type="button">Экспорт JSON</button>
           </div>
         </header>
 
-        <section class="metrics" aria-label="Сводка">
-          <div class="metric">
-            <span>Позиций</span>
-            <strong id="metric-items">0</strong>
+        <section id="dashboard" class="view active">
+          <section class="lounge-hero">
+            <div class="hero-copy">
+              <p class="eyebrow">Ignatiev Lounge</p>
+              <h2>Полка, заявка и меню в одном рабочем экране</h2>
+              <div class="hero-actions">
+                <button class="primary-button" data-jump="order" type="button">Открыть заявку</button>
+                <button class="ghost-button dark" data-jump="catalog" type="button">Каталог ароматов</button>
+              </div>
+            </div>
+            <div class="hero-glass">
+              <span>Бар меню</span>
+              <strong>Актуальный визуал</strong>
+              <p>Фотографии заведения уже встроены. Когда пришлешь новое меню, добавим точные позиции и цены.</p>
+            </div>
+          </section>
+
+          <div class="metrics-grid">
+            <article class="metric">
+              <span>Позиций на полке</span>
+              <strong id="metricItems">0</strong>
+            </article>
+            <article class="metric warning">
+              <span>Нужно заказать</span>
+              <strong id="metricOrder">0</strong>
+            </article>
+            <article class="metric">
+              <span>Сумма заявки</span>
+              <strong id="metricSum">0 ₽</strong>
+            </article>
+            <article class="metric">
+              <span>Брендов</span>
+              <strong id="metricBrands">0</strong>
+            </article>
           </div>
-          <div class="metric">
-            <span>На полке</span>
-            <strong id="metric-stock">0</strong>
+
+          <div class="dashboard-grid">
+            <section class="panel wide">
+              <div class="panel-head">
+                <h2>Визуализация полки</h2>
+                <select id="shelfBrandFilter" aria-label="Фильтр бренда"></select>
+              </div>
+              <div id="shelfPreview" class="shelf-preview"></div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-head">
+                <h2>Критичные остатки</h2>
+              </div>
+              <div id="lowStockList" class="compact-list"></div>
+            </section>
           </div>
-          <div class="metric">
-            <span>Вес</span>
-            <strong id="metric-weight">0 г</strong>
-          </div>
-          <div class="metric alert">
-            <span>Мало</span>
-            <strong id="metric-low">0</strong>
-          </div>
-          <div class="metric">
-            <span>К заказу</span>
-            <strong id="metric-order">0</strong>
-          </div>
-          <div class="metric">
-            <span>Сумма</span>
-            <strong id="metric-amount">0 ₽</strong>
-          </div>
+
+          <section class="gallery-band">
+            <img src="https://lh3.googleusercontent.com/d/1jfWc9vnrL103u82lXAI76u_XK7E701hz=w1200" alt="Зал Ignatiev Lounge" />
+            <img src="https://lh3.googleusercontent.com/d/1uHEnZocwBEZUqJEX67hzGvgfWEx2JjFy=w1200" alt="Диванная зона Ignatiev Lounge" />
+            <img src="https://lh3.googleusercontent.com/d/1Y52wACkb62qvT0Rs38ZCQjtgLwQ6IybR=w1200" alt="Неоновая вывеска Ignatiev Lounge" />
+          </section>
         </section>
 
-        <section class="toolbar" aria-label="Фильтры">
-          <label>
-            Поиск
-            <input id="search-input" type="search" placeholder="Бренд, вкус, артикул" />
-          </label>
-          <label>
-            Поставщик
-            <select id="supplier-filter"></select>
-          </label>
-          <label>
-            Статус
-            <select id="status-filter">
-              <option value="all">Все</option>
-              <option value="low">Мало</option>
-              <option value="normal">Норма</option>
-              <option value="overstock">Избыток</option>
-              <option value="required">Матрица</option>
-              <option value="archived">Вывести</option>
-            </select>
-          </label>
-          <label>
-            Крепость
-            <select id="strength-filter"></select>
-          </label>
+        <section id="shelf" class="view">
+          <div class="tool-row">
+            <div class="segmented" role="group" aria-label="Статус">
+              <button class="segment active" data-status="all" type="button">Все</button>
+              <button class="segment" data-status="low" type="button">Мало</button>
+              <button class="segment" data-status="missing" type="button">Нет</button>
+              <button class="segment" data-status="inactive" type="button">Убрано</button>
+            </div>
+            <button id="addManualItem" class="primary-button" type="button">Добавить позицию</button>
+          </div>
+          <div id="shelfGrid" class="item-grid"></div>
         </section>
 
-        <section id="view-shelf" class="view active">
-          <div class="section-head">
-            <div>
-              <h3>Остатки и матрица</h3>
-              <p>Поля редактируются прямо в таблице. Новые ароматы и граммовку можно выбрать из прайса.</p>
-            </div>
-            <div class="inline-actions">
-              <button id="add-item-button" class="command primary">Новая позиция</button>
-              <button id="export-state-button" class="command">Выгрузить базу</button>
-            </div>
+        <section id="catalog" class="view">
+          <div class="tool-row">
+            <select id="catalogBrand" aria-label="Бренд каталога"></select>
+            <select id="catalogGrams" aria-label="Граммовка"></select>
+            <button id="resetCatalogFilters" class="ghost-button" type="button">Сбросить</button>
+          </div>
+          <div id="catalogGrid" class="catalog-grid"></div>
+        </section>
+
+        <section id="order" class="view">
+          <div class="tool-row">
+            <div class="order-summary" id="orderSummary">0 позиций</div>
+            <button id="exportCsv" class="primary-button" type="button">Скачать заявку CSV</button>
           </div>
           <div class="table-wrap">
             <table>
               <thead>
                 <tr>
-                  <th>Статус</th>
-                  <th>Поставщик</th>
-                  <th>Позиция</th>
-                  <th>Крепость</th>
+                  <th>Бренд</th>
+                  <th>Аромат</th>
+                  <th>Гр</th>
                   <th>Остаток</th>
-                  <th>Мин.</th>
-                  <th>Цель</th>
                   <th>Заказать</th>
-                  <th>Цена</th>
-                  <th>Прайс</th>
-                  <th>Матрица</th>
-                  <th>Вывести</th>
-                </tr>
-              </thead>
-              <tbody id="shelf-body"></tbody>
-            </table>
-          </div>
-        </section>
-
-        <section id="view-order" class="view">
-          <div class="section-head">
-            <div>
-              <h3>Готовая заявка</h3>
-              <p>Экспорт формирует CSV для отправки поставщику или дальнейшей вставки в таблицу.</p>
-            </div>
-            <div class="inline-actions">
-              <select id="export-supplier"></select>
-              <button id="export-order-button" class="command primary">Экспорт CSV</button>
-            </div>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Поставщик</th>
-                  <th>Артикул</th>
-                  <th>Позиция</th>
-                  <th>Кол-во</th>
                   <th>Цена</th>
                   <th>Сумма</th>
                 </tr>
               </thead>
-              <tbody id="order-body"></tbody>
+              <tbody id="orderRows"></tbody>
             </table>
           </div>
         </section>
 
-        <section id="view-prices" class="view">
-          <div class="section-head">
-            <div>
-              <h3>Прайсы</h3>
-              <p>Проставьте количество в заказ или добавьте позицию на полку прямо из актуального прайса.</p>
-            </div>
-            <div class="inline-actions">
-              <button id="add-price-item-button" class="command primary">Новая позиция</button>
-            </div>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Поставщик</th>
-                  <th>Артикул</th>
-                  <th>Наименование</th>
-                  <th>Бренд</th>
-                  <th>Крупный опт</th>
-                  <th>Мелкий опт</th>
-                  <th>Заказ</th>
-                  <th>Полка</th>
-                  <th>Источник</th>
-                </tr>
-              </thead>
-              <tbody id="prices-body"></tbody>
-            </table>
-          </div>
-        </section>
-
-        <section id="view-import" class="view">
-          <div class="import-panel">
-            <div>
-              <h3>Импорт прайса</h3>
-              <p>Загрузите CSV поставщика. Колонки определяются по заголовкам.</p>
-            </div>
-            <label>
-              Поставщик
-              <select id="import-supplier"></select>
-            </label>
-            <label class="file-drop">
-              <input id="price-file" type="file" accept=".csv,.txt" />
-              <span>Выберите CSV-файл</span>
-            </label>
-            <button id="import-button" class="command primary">Импортировать</button>
-            <p id="import-message" class="import-message"></p>
-          </div>
-        </section>
-
-        <section id="view-sync" class="view">
-          <div class="import-panel">
-            <div>
-              <h3>Синхронизация Google Sheets</h3>
-              <p>Вставьте URL опубликованного Google Apps Script Web App и токен. После этого сайт сможет читать и сохранять общую базу в Google Таблице.</p>
-            </div>
-            <label>
-              Apps Script Web App URL
-              <input id="sync-url" type="url" placeholder="https://script.google.com/macros/s/.../exec" />
-            </label>
-            <label>
-              Токен
-              <input id="sync-token" type="password" placeholder="ACCESS_TOKEN из Code.gs" />
-            </label>
-            <div class="inline-actions">
-              <button id="sync-save-settings" class="command">Сохранить настройки</button>
-              <button id="sync-load-button" class="command">Загрузить из Sheets</button>
-              <button id="sync-push-button" class="command primary">Отправить в Sheets</button>
-            </div>
-            <p id="sync-message" class="import-message"></p>
+        <section id="settings" class="view">
+          <div class="settings-grid">
+            <section class="panel">
+              <div class="panel-head">
+                <h2>Фото полки</h2>
+              </div>
+              <label class="upload-zone">
+                <input id="shelfPhotoInput" type="file" accept="image/*" />
+                <span>Загрузить фото текущей полки</span>
+              </label>
+              <img id="shelfPhoto" class="shelf-photo" alt="Фото полки Ignatiev Lounge" />
+            </section>
+            <section class="panel">
+              <div class="panel-head">
+                <h2>Данные</h2>
+              </div>
+              <div class="settings-actions">
+                <button id="resetData" class="ghost-button danger" type="button">Сбросить изменения</button>
+                <label class="ghost-button file-button">
+                  Импорт JSON
+                  <input id="importState" type="file" accept="application/json" />
+                </label>
+              </div>
+              <p class="settings-note">Все изменения сохраняются в браузере. После публикации на GitHub Pages сайт будет работать как статическое приложение.</p>
+            </section>
           </div>
         </section>
       </main>
     </div>
 
-    <script src="data/seed-data.js"></script>
-    <script src="app.js"></script>
-
-    <dialog id="item-dialog" class="modal">
-      <form method="dialog" class="modal-card">
-        <div class="modal-head">
-          <div>
-            <h3 id="item-dialog-title">Новая позиция</h3>
-            <p>Выберите аромат из прайса или заполните название вручную.</p>
-          </div>
-          <button class="icon-button" value="cancel" aria-label="Закрыть">×</button>
+    <dialog id="itemDialog">
+      <form method="dialog" class="dialog-card">
+        <div class="dialog-head">
+          <h2 id="dialogTitle">Позиция</h2>
+          <button value="cancel" class="icon-button" type="submit" aria-label="Закрыть">×</button>
         </div>
-
-        <div class="modal-grid">
-          <label>
-            Поставщик
-            <select id="modal-supplier"></select>
-          </label>
-          <label>
-            Поиск в прайсе
-            <input id="modal-price-search" type="search" placeholder="Бренд или вкус" />
-          </label>
+        <div class="form-grid">
+          <label>Бренд<input id="itemBrand" required /></label>
+          <label>Линейка<input id="itemLine" /></label>
+          <label>Аромат<input id="itemFlavor" required /></label>
+          <label>Граммовка<input id="itemGrams" type="number" min="1" step="1" required /></label>
+          <label>Остаток<input id="itemStock" type="number" min="0" step="1" required /></label>
+          <label>Минимум<input id="itemMin" type="number" min="0" step="1" required /></label>
+          <label>Цель<input id="itemTarget" type="number" min="0" step="1" required /></label>
+          <label>Цена<input id="itemPrice" type="number" min="0" step="1" /></label>
         </div>
-
-        <label>
-          Вариант из прайса
-          <select id="modal-price-select"></select>
-        </label>
-
-        <div class="modal-grid">
-          <label>
-            Бренд
-            <input id="modal-brand" type="text" />
-          </label>
-          <label>
-            Крепость
-            <select id="modal-strength">
-              <option>Не указана</option>
-              <option>Легкая</option>
-              <option>Средняя</option>
-              <option>Крепкая</option>
-              <option>Cigar</option>
-              <option>No Aroma</option>
-            </select>
-          </label>
-          <label>
-            Граммовка
-            <select id="modal-weight"></select>
-          </label>
-          <label>
-            Цена
-            <input id="modal-price" type="number" min="0" />
-          </label>
-        </div>
-
-        <label>
-          Название
-          <input id="modal-name" type="text" />
-        </label>
-
-        <div class="modal-grid">
-          <label>
-            Остаток
-            <input id="modal-stock" type="number" min="0" value="0" />
-          </label>
-          <label>
-            Минимум
-            <input id="modal-min" type="number" min="0" value="0" />
-          </label>
-          <label>
-            Цель
-            <input id="modal-target" type="number" min="0" value="1" />
-          </label>
-          <label>
-            В заявку
-            <input id="modal-order" type="number" min="0" value="0" />
-          </label>
-        </div>
-
-        <div class="modal-actions">
-          <button value="cancel" class="command">Отмена</button>
-          <button id="modal-save" type="button" class="command primary">Добавить</button>
-        </div>
+        <label class="toggle-line"><input id="itemRequired" type="checkbox" /> Обязательная позиция матрицы</label>
+        <menu class="dialog-actions">
+          <button id="removeItem" class="ghost-button danger" type="button">Убрать</button>
+          <button value="cancel" class="ghost-button" type="submit">Отмена</button>
+          <button id="saveItem" class="primary-button" value="default" type="button">Сохранить</button>
+        </menu>
       </form>
     </dialog>
+
+    <script src="./assets/app.js" type="module"></script>
   </body>
 </html>
